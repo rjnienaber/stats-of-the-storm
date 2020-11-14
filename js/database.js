@@ -4,6 +4,7 @@
 
 // libraries
 const Parser = require('../hots-parser/parser.js');
+const { Stopwatch } = require('./stopwatch');
 const fs = require('fs-extra');
 
 const summarizeHeroData = require('./database/summarize-hero-data');
@@ -31,6 +32,7 @@ class Database {
   }
 
   compactDB(store, callback) {
+    const callback = Stopwatch.wrap(callback);
     let mdb = medea();
     mdb.open(this._path + '/' + store + '.ldb', function(err) {
       if (err) {
@@ -50,6 +52,7 @@ class Database {
   }
 
   close(callback) {
+    callback = Stopwatch.wrap(callback);
     var self = this;
     this._db.heroData.store.close(function () {
       self._db.matches.store.close(function () {
@@ -63,6 +66,7 @@ class Database {
   }
 
   destroy(callback) {
+    callback = Stopwatch.wrap(callback);
     var self = this;
     medea.destroy(path.join(self._path, 'matches.ldb'), function() {
       medea.destroy(path.join(self._path, 'hero.ldb'), function() {
@@ -76,6 +80,7 @@ class Database {
   }
 
   compactAndReload(callback) {
+    callback = Stopwatch.wrap(callback);
     var self = this;
     this._db.heroData.store.close(function () {
       self._db.matches.store.close(function () {
@@ -109,6 +114,7 @@ class Database {
   }
 
   load(onComplete, progress) {
+    onComplete = Stopwatch.wrap(onComplete);
     // open the databases
     this._db = {};
     var self = this;
@@ -127,10 +133,13 @@ class Database {
   }
 
   getCollections(callback) {
-    this._db.settings.find({type: 'collection'}, callback);
+    callback = Stopwatch.wrap(callback);
+    const stopwatch = new Stopwatch('Database#load');
+    this._db.settings.find({type: 'collection'}, );
   }
 
   addCollection(name, onComplete) {
+    onComplete = Stopwatch.wrap(onComplete);
     this._db.settings.insert({
       type: 'collection',
       name: name
@@ -138,6 +147,7 @@ class Database {
   }
 
   deleteCollection(collectionID, onComplete) {
+    onComplete = Stopwatch.wrap(onComplete);
     var self = this;
     this._db.settings.remove({ _id: collectionID }, {}, function(err, removed) {
       self._db.matches.update({collection: collectionID}, { $pull: { collection: collectionID }}, {}, function(err) {
@@ -147,6 +157,7 @@ class Database {
   }
 
   dump(dir, final) {
+    onComplete = Stopwatch.wrap(onComplete);
     // exports all database data to json files
     var self = this;
     this._db.matches.find({}, function (err, docs) {
@@ -171,30 +182,36 @@ class Database {
 
   // i don't think the next two need callbacks but if so i guess i'll have to add it
   addMatchToCollection(matchID, collectionID) {
+    onComplete = Stopwatch.wrap(onComplete);
     // this actually needs to modify two databases to ensure proper data aggregation
     this._db.matches.update({ _id: matchID }, { $addToSet: { collection: collectionID }}, {});
     this._db.heroData.update({ matchID: matchID }, { $addToSet: { collection: collectionID }}, { multi: true });
   }
 
   removeMatchFromCollection(matchID, collectionID) {
+    onComplete = Stopwatch.wrap(onComplete);
     this._db.matches.update({ _id: matchID }, { $pull: { collection: collectionID }}, {});
     this._db.heroData.update({ matchID: matchID }, { $pull: { collection: collectionID }}, { multi: true });
   }
 
   renameCollection(collectionID, name, onComplete) {
+    onComplete = Stopwatch.wrap(onComplete);
     this._db.settings.update({_id: collectionID}, { $set: {name: name}}, {}, onComplete);
   }
 
   setCollection(collectionID) {
+    onComplete = Stopwatch.wrap(onComplete);
     this._collection = collectionID;
   }
 
   getCollection() {
-    return this._collection;
+    debugger;
+    return Stopwatch.time(() => this._collection);
   }
 
   // this should have a GUI warning, this code sure won't stop you.
   deleteDB(callback) {
+    callback = Stopwatch.wrap(callback);
     var self = this;
 
     this._db.heroData.store.close(function () {
@@ -221,15 +238,18 @@ class Database {
   }
 
   addReplayToDatabase(file, opts = {}) {
+    const stopwatch = Stopwatch.create();
     var data = Parser.processReplay(file, opts);
 
     if (data.status === Parser.ReplayStatus.OK) {
       // insert match, upsert is used just in case duplicates exist
       this.insertReplay(data.match, data.players);
     }
+    stopwatch.stop();
   }
 
   insertReplay(match, players, collection, final) {
+    const stopwatch = Stopwatch.create();
     var self = this;
 
     if (!collection) {
@@ -279,6 +299,7 @@ class Database {
           if (final) {
             final();
           }
+          stopwatch.stop();
         })
       }
     });
@@ -286,6 +307,7 @@ class Database {
 
   // deletes a match and the associated hero data.
   deleteReplay(matchID, callback) {
+    callback = Stopwatch.wrap(callback);
     var self = this;
     this._db.matches.find({ _id: matchID }, function(err, docs) {
       if (docs.length === 0) {
@@ -308,10 +330,12 @@ class Database {
   }
 
   tagReplay(matchID, tag, callback) {
+    callback = Stopwatch.wrap(callback);
     this.tagReplays([matchID], tag, callback);
   }
 
   tagReplays(matchIDs, tag, callback) {
+    callback = Stopwatch.wrap(callback);
     var self = this;
     this._db.matches.update({ _id: { $in : matchIDs } }, { $addToSet: { tags: tag } }, { multi: true }, function() {
       self._db.heroData.update({ matchID: { $in: matchIDs } }, { $addToSet: { tags: tag } }, { multi: true }, callback);
@@ -319,10 +343,12 @@ class Database {
   }
 
   untagReplay(matchID, tag, callback) {
+    callback = Stopwatch.wrap(callback);
     this.untagReplays([matchID], tag, callback);
   }
 
   untagReplays(matchIDs, tag, callback) {
+    callback = Stopwatch.wrap(callback);
     var self = this;
     this._db.matches.update({_id: { $in: matchIDs } }, { $pull: { tags: tag } }, { multi: true }, function() {
       self._db.heroData.update({ matchID: { $in: matchIDs } }, { $pull: { tags: tag } }, { multi: true }, callback);
@@ -330,6 +356,7 @@ class Database {
   }
 
   getTags(callback) {
+    callback = Stopwatch.wrap(callback);
     var self = this;
     let query = {};
     this.preprocessQuery(query);
@@ -352,35 +379,43 @@ class Database {
 
   // teams are stored in settings
   addTeam(players, name, callback) {
+    callback = Stopwatch.wrap(callback);
     this._db.settings.insert({ players, name, type: 'team' }, callback);
   }
 
   // need to query by id, teams are allowed to have the same name
   deleteTeam(id, callback) {
+    callback = Stopwatch.wrap(callback);
     this._db.settings.remove({ _id: id }, callback);
   }
 
   changeTeamName(id, name, callback) {
+    callback = Stopwatch.wrap(callback);
     this._db.settings.update({ _id: id} , { $set : { name: name } }, {}, callback);
   }
 
   updateTeamPlayers(id, players, callback) {
+    callback = Stopwatch.wrap(callback);
     this._db.settings.update({ _id: id}, { players }, {}, callback);
   }
 
   addPlayerToTeam(id, player, callback) {
+    callback = Stopwatch.wrap(callback);
     this._db.settings.update({_id: id}, { $addToSet: { players: player }}, {}, callback);
   }
 
   removePlayerFromTeam(id, player, callback) {
+    callback = Stopwatch.wrap(callback);
     this._db.settings.update({_id:id}, { $pull: { players: player}}, {}, callback);
   }
 
   getAllTeams(callback) {
+    callback = Stopwatch.wrap(callback);
     this._db.settings.find({type: 'team'}, callback);
   }
 
   getTeam(id, callback) {
+    callback = Stopwatch.wrap(callback);
     var self = this;
     this._db.settings.findOne({_id: id}, function(err, team) {
       // teams need to resolve aliases as well, so the playeres array will consist
@@ -425,6 +460,7 @@ class Database {
 
   // checks to see if all of the given players are on a team
   getTeamByPlayers(players, callback) {
+    callback = Stopwatch.wrap(callback);
     var self = this;
     // resolve aliases first
     this.getPlayers({ _id: { $in: players } }, function(err, docs) {
@@ -446,11 +482,13 @@ class Database {
   }
 
   getPlayerTeams(id, callback) {
+    callback = Stopwatch.wrap(callback);
     this._db.settings.find({ type: 'team', players: id }, callback);
   }
 
   // callback format: function(teamObject, matchData, heroData)
   getTeamData(teamID, filter, callback) {
+    callback = Stopwatch.wrap(callback);
     DB.getTeam(teamID, function(err, team) {
       // get the match data
       let query = Object.assign({}, filter);
@@ -519,6 +557,7 @@ class Database {
 
   // reduction function for iterating and processing each team
   reduceTeams(filter, init, reduce, final) {
+    final = Stopwatch.wrap(final);
     var self = this;
 
     this.getAllTeams(function(err, teams) {
@@ -533,6 +572,7 @@ class Database {
   }
 
   processTeamReduce(currentTeam, remaining, filter, reduce, final) {
+    final = Stopwatch.wrap(final);
     if (!currentTeam) {
       final();
       return;
@@ -588,6 +628,7 @@ class Database {
   }
 
   checkDuplicate(file, callback) {
+    callback = Stopwatch.wrap(callback);
     let header = Parser.getHeader(file);
 
     if (header.err) {
@@ -629,6 +670,7 @@ class Database {
 
   // counts the given matches
   countMatches(query, callback) {
+    callback = Stopwatch.wrap(callback);
     this.preprocessQuery(query);
 
     let self = this;
@@ -647,6 +689,7 @@ class Database {
 
   // retrieves a match from the database using the given query
   getMatches(query, callback, opts = {}) {
+    callback = Stopwatch.wrap(callback);
     if (opts.collectionOverride !== true) {
       this.preprocessQuery(query);
     }
@@ -671,6 +714,7 @@ class Database {
   }
 
   aliasResolutionUpdater(field, p1, p2) {
+    const stopwatch = Stopwatch.create();
     let id1 = {};
     id1[field] = p1;
 
@@ -681,12 +725,14 @@ class Database {
       o.$or.push(tmp);
     }
 
+    stopwatch.stop();
     return o;
   }
 
   // this one's pretty nasty.
   // if we have any players with aliases we'll need to do spot replacements.
   resolveMatchFilterAliases(query, next) {
+    const stopwatch = Stopwatch.create();
     // gather players that are in the query.
     let ids = [];
     if (query.$and) {
@@ -734,12 +780,13 @@ class Database {
           }
         }
       }
-
+      stopwatch.stop();
       next(query);
     });
   }
 
   getMatchPage(query, pageNum, limit, projection, callback) {
+    callback = Stopwatch.wrap(callback);
     this.preprocessQuery(query);
 
     let skip = pageNum * limit;
@@ -752,6 +799,7 @@ class Database {
 
   // updates the entire match
   updateMatch(match, callback) {
+    callback = Stopwatch.wrap(callback);
     if (callback) {
       this._db.matches.update({ _id: match._id }, match, {}, callback);
     }
@@ -761,6 +809,7 @@ class Database {
   }
 
   updateMatchDraft(matchId, picks, bans, callback) {
+    callback = Stopwatch.wrap(callback);
     this._db.matches.update(
       { _id: matchId },
       {
@@ -775,6 +824,7 @@ class Database {
 
   // retrieves matches by id
   getMatchesByID(ids, callback, opts = {}) {
+    callback = Stopwatch.wrap(callback);
     let query = {$or: []};
     for (let i in ids) {
       query.$or.push({_id: ids[i]});
@@ -784,6 +834,7 @@ class Database {
   }
 
   getHeroDataForID(matchID, callback) {
+    callback = Stopwatch.wrap(callback);
     let query = {matchID: matchID};
 
     this.preprocessQuery(query);
@@ -794,6 +845,7 @@ class Database {
   // if a player is aliasedTo a different player, we're gonna return the combined
   // hero data for all players aliasedTo the root player.
   getHeroDataForPlayer(playerID, callback) {
+    callback = Stopwatch.wrap(callback);
     this.getHeroDataForPlayerWithFilter(playerID, {}, callback);
   }
 
@@ -802,6 +854,7 @@ class Database {
   // If not, it directly skips to the callback function
   // this function specifically looks at filters returned by the hero filter from the filter popup widget.
   resolveHeroFilterAliases(query, next) {
+    const stopwatch = new Stopwatch();
     // condition is if ToonHandle exists
     if (!query.ToonHandle) {
       next(query);
@@ -825,11 +878,13 @@ class Database {
       }
 
       query.ToonHandle.$in = query.ToonHandle.$in.concat(toAdd);
+      stopwatch.stop();
       next(query);
     });
   }
 
   getHeroDataForPlayerWithFilter(playerID, filter, callback) {
+    callback = Stopwatch.wrap(callback);
     var self = this;
 
     this.getPlayer(playerID, function(err, player) {
@@ -862,6 +917,7 @@ class Database {
   }
 
   getHeroData(query, callback) {
+    callback = Stopwatch.wrap(callback);
     this.preprocessQuery(query);
     
     var self = this;
@@ -871,6 +927,7 @@ class Database {
   }
 
   getHeroDataForMatches(ids, query, callback) {
+    callback = Stopwatch.wrap(callback);
     query.$or = [];
     for (let i in ids) {
       query.$or.push({ matchID : ids[i]});
@@ -881,6 +938,7 @@ class Database {
   }
 
   getMatchesFromComplexQuery(matchQuery, heroQuery, callback) {
+    callback = Stopwatch.wrap(callback);
     // this one is fun.
     // first, filter matches based on match query
     // then, run the hero query but only look at entries with matching match id
@@ -888,6 +946,7 @@ class Database {
   }
 
   getPlayers(query, callback, opts = {}) {
+    callback = Stopwatch.wrap(callback);
     if ('sort' in opts) {
       let cursor;
       if ('projection' in opts)
@@ -911,14 +970,17 @@ class Database {
   // note that players are not part of the collection, so uh, i guess the UI should just not show
   // players with 0 things in the database?
   getPlayer(id, callback) {
+    callback = Stopwatch.wrap(callback);
     this.getPlayers({_id: id}, callback);
   }
 
   setPlayerNickname(id, name, callback) {
+    callback = Stopwatch.wrap(callback);
     this._db.players.update({ _id: id }, { $set : { nickname: name } }, {}, callback);
   }
 
   updatePlayerAliases(id, aliases, callback) {
+    callback = Stopwatch.wrap(callback);
     var self = this;
 
     // sanity check for self-aliases
@@ -977,6 +1039,7 @@ class Database {
 
   // returns a set of all players that are aliased to something else in the db
   getAliasedPlayers(callback) {
+    callback = Stopwatch.wrap(callback);
     const aliasFilter = { $and: [{aliasedTo: { $exists: true } }, { $not: { aliasedTo: '' } }] };
     this.getPlayers(aliasFilter, callback);
   }
@@ -984,6 +1047,7 @@ class Database {
   // hero data is separated by hero, if you need the total stuff, use this function
   // returns: all stats in the 'average' fields
   allAverageHeroData(data) {
+    const stopwatch = Stopwatch.create();
     let stats = {};
     for (let h in data.total) {
       for (let s in data.total[h]) {
@@ -998,12 +1062,14 @@ class Database {
       stats[s] /= data.games;
     }
 
+    stopwatch.stop();
     return stats;
   }
 
   // returns a list of versions in the database along with
   // a formatted string for each of them.
   getVersions(callback) {
+    callback = Stopwatch.wrap(callback);
     let query = {};
     this.preprocessQuery(query);
     this._db.matches.find(query, function(err, docs) {
@@ -1019,6 +1085,7 @@ class Database {
 
   // the DB is versioned based on the parser's current version number.
   getDBVersion(callback) {
+    callback = Stopwatch.wrap(callback);
     var self = this;
     this._db.settings.findOne({type: 'version'}, function(err, ver) {
       if (!ver) {
@@ -1036,6 +1103,7 @@ class Database {
 
   // this may turn into upgrade functions eventually but for now we'll just do this
   setDBVersion(version, callback) {
+    callback = Stopwatch.wrap(callback);
     this._db.settings.update({type: 'version'}, { $set: {version: version} }, {}, function(err, updated) {
       // basically an on complete callback
       if (callback)
@@ -1048,6 +1116,7 @@ class Database {
   // cache it, then execute the specified callback
   // Cached data is over the entire database, and is not modifiable for now
   getCachedCollectionHeroStats(collectionID, callback) {
+    callback = Stopwatch.wrap(callback);
     // check for existence and consistency
     let query = {};
     if (collectionID) {
@@ -1094,10 +1163,12 @@ class Database {
   }
 
   getExternalCacheCollections(callback) {
+    callback = Stopwatch.wrap(callback);
     this._db.settings.find({ type: 'externalCache' }, callback);
   }
 
   getExternalCacheCollectionHeroStats(collectionID, callback) {
+    callback = Stopwatch.wrap(callback);
     this._db.settings.find({ type: 'externalCache',  _id: collectionID }, function(err, docs) {
       if (docs.length > 0) {
         let cache = docs[0];
@@ -1113,6 +1184,7 @@ class Database {
   // dumps summarized hero data for each collection in the other database.
   // requires a bit of memory...
   cacheExternalDatabase(path, name, callback) {
+    callback = Stopwatch.wrap(callback);
     // load
     let self = this;
     let tempDB = new Database(path);
@@ -1143,6 +1215,7 @@ class Database {
   }
 
   processExternalCaches(current, dbName, collections, tempDB, final) {
+    final = Stopwatch.wrap(final);
     let self = this;
     tempDB.getHeroData({collection: current._id}, function(err, heroData) {
       let hdata = summarizeHeroData(heroData);
@@ -1167,6 +1240,7 @@ class Database {
 
   // external cache stuff
   deleteExternalCache(dbName, callback) {
+    callback = Stopwatch.wrap(callback);
     this._db.settings.remove({ dbName: dbName, type: 'externalCache' }, { multi: true }, function(err, numRemoved) {
       if (err)
         console.log(err);
@@ -1177,6 +1251,7 @@ class Database {
   }
 
   importDB(otherPath, importTypes, progress, final) {
+    final = Stopwatch.wrap(final);
     const self = this;
     const otherDB = new Database(otherPath);
     progress('Loading other Database');
@@ -1266,6 +1341,7 @@ class Database {
   }
 
   importTeams(team, remaining, progress, final) {
+    final = Stopwatch.wrap(final);
     if (!team) {
       final();
       return;
@@ -1292,6 +1368,7 @@ class Database {
   }
 
   importCollections(collection, remaining, progress, final) {
+    final = Stopwatch.wrap(final);
     if (!collection) {
       final();
       return;
@@ -1318,6 +1395,7 @@ class Database {
   }
 
   importPlayers(player, remaining, progress, final) {
+    final = Stopwatch.wrap(final);
     if (!player) {
       final();
       return;
@@ -1343,6 +1421,7 @@ class Database {
   }
 
   importMatches(otherDB, match, remaining, progress, useCollection, final) {
+    final = Stopwatch.wrap(final);
     // this one is a bit different than the previous...
     if (!match) {
       final();
