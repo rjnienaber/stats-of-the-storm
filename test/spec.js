@@ -2,34 +2,19 @@ const { Application } = require('spectron');
 const assert = require('assert')
 const electronPath = require('electron') // Require Electron from the binaries included in node_modules.
 const path = require('path')
+const {expect} = require('chai')
+const {LoaderPage} = require('./page_objects/loader');
 
 const REPLAY_DIR = path.join(__dirname, 'replays');
 
 describe('Application launch', function () {
   self = this;
-  this.timeout(20000)
+  this.timeout(60000)
 
   beforeEach(function () {
     self.app = new Application({
-      // Your electron path can be any binary
-      // i.e for OSX an example path could be '/Applications/MyApp.app/Contents/MacOS/MyApp'
-      // But for the sake of the example we fetch it from our node_modules.
       path: electronPath,
-
-      // Assuming you have the following directory structure
-
-      //  |__ my project
-      //     |__ ...
-      //     |__ main.js
-      //     |__ package.json
-      //     |__ index.html
-      //     |__ ...
-      //     |__ test
-      //        |__ spec.js  <- You are here! ~ Well you should be.
-
-      // The following line tells spectron to look and use the main.js file
-      // and the package.json located 1 level above.
-      args: ['--no-sandbox', path.join(__dirname, '..'), 'testing']
+      args: ['--no-sandbox', path.join(__dirname, '..'), '--appPath=test/tmp', '--replayPath=test/replays']
     })
     return self.app.start()
   })
@@ -40,9 +25,17 @@ describe('Application launch', function () {
     }
   })
 
-  it('shows an initial window', async () => {
-    const count = await self.app.client.getWindowCount()
-    assert.equal(count, 2)
+  it('loads replays', async () => {
+    // http://v4.webdriver.io/api.html
+    const loader = new LoaderPage(self.app);
+    const matches = await loader.waitForMatchesPage();
+    await matches.waitForLoad();
+
+    const settings = await matches.sidebar.navigateToSettings();
+    settings.startParsingReplays()
+    await settings.waitForReplaysToFinishParsing();
+
+    expect(matches.totalReplays).to.equal(32);
   })
 
   // TODO: https://circleci.com/blog/electron-testing/

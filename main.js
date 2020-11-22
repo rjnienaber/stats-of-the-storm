@@ -51,10 +51,14 @@ function createWindow() {
     slashes: true
   });
 
-  let [,,appPath, replayPath] = process.argv
-  if (appPath) {
-    [appPath, replayPath] = [appPath, replayPath].map((p) => path.isAbsolute(p) ? p : path.join(process.cwd(), p));
-    indexUrl += '?' + qs.stringify({appPath, replayPath});
+  const appPathArg = process.argv.filter((arg) => arg.includes('--appPath'))[0]
+  const replayPathArg = process.argv.filter((arg) => arg.includes('--replayPath'))[0]
+  if (appPathArg && replayPathArg) {
+    const [appPath, replayPath] = [appPathArg, replayPathArg].map((p) => {
+      const testPath = p.split('=')[1];
+      return path.isAbsolute(testPath) ? testPath : path.join(process.cwd(), testPath);
+    });
+    indexUrl += '?' + qs.stringify({appPath, replayPath, ...process.argv});
   }
 
   win.loadURL(indexUrl);
