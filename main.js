@@ -3,6 +3,7 @@ const path = require('path');
 const url = require('url');
 const { autoUpdater } = require('electron-updater');
 const windowStateKeeper = require('electron-window-state');
+const qs = require('querystring');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -44,11 +45,19 @@ function createWindow() {
   mainWindowState.manage(win);
 
   // and load the index.html of the app.
-  win.loadURL(url.format({
-      pathname: path.join(__dirname, 'index.html'),
-      protocol: 'file:',
-      slashes: true
-    }));
+  let indexUrl = url.format({
+    pathname: path.join(__dirname, 'index.html'),
+    protocol: 'file:',
+    slashes: true
+  });
+
+  let [,,appPath, replayPath] = process.argv
+  if (appPath) {
+    [appPath, replayPath] = [appPath, replayPath].map((p) => path.isAbsolute(p) ? p : path.join(process.cwd(), p));
+    indexUrl += '?' + qs.stringify({appPath, replayPath});
+  }
+
+  win.loadURL(indexUrl);
 
   // Open the DevTools.
   // REMEMBER TO COMMENT THIS OUT FOR RELEASES
@@ -67,6 +76,7 @@ function createWindow() {
       allWindows[w].close();
     }
   });
+  win.webContents.toggleDevTools();
 
   autoUpdater.checkForUpdatesAndNotify();
 }

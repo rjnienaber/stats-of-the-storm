@@ -1,7 +1,9 @@
-const Application = require('spectron').Application
+const { Application } = require('spectron');
 const assert = require('assert')
 const electronPath = require('electron') // Require Electron from the binaries included in node_modules.
 const path = require('path')
+
+const REPLAY_DIR = path.join(__dirname, 'replays');
 
 describe('Application launch', function () {
   self = this;
@@ -27,7 +29,7 @@ describe('Application launch', function () {
 
       // The following line tells spectron to look and use the main.js file
       // and the package.json located 1 level above.
-      args: ['--no-sandbox', path.join(__dirname, '..')]
+      args: ['--no-sandbox', path.join(__dirname, '..'), 'testing']
     })
     return self.app.start()
   })

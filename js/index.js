@@ -50,6 +50,16 @@ const dtbtse = require('datatables.net-buttons-se')(window, $);
 require('datatables.net-buttons/js/buttons.html5.js')(window, $);  // HTML 5 file export
 const path = require('path');
 const settings = require('electron-settings');
+const qs = require('querystring');
+
+const queryString = (global.location.search || '').slice(1);
+if (queryString) {
+  const {appPath, replayPath} = qs.parse(queryString);
+  const settingsPath = path.join(appPath, 'settings.json');
+  settings.setPath(settingsPath);
+  settings.set('dbPath', appPath)
+  settings.set('replayPath', replayPath)
+}
 
 const watch = require('node-watch');
 
