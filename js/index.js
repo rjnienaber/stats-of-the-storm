@@ -56,7 +56,6 @@ const queryString = (global.location.search || '').slice(1);
 if (queryString) {
   const parsedQueryString = qs.parse(queryString);
   const {appPath, replayPath} = parsedQueryString;
-  console.log({appPath, replayPath})
   const settingsPath = path.join(appPath, 'settings.json');
   settings.setPath(settingsPath);
   settings.set('dbPath', appPath)

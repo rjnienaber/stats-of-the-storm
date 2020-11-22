@@ -9,7 +9,7 @@ const REPLAY_DIR = path.join(__dirname, 'replays');
 
 describe('Application launch', function () {
   self = this;
-  this.timeout(60000)
+  this.timeout(20000)
 
   beforeEach(function () {
     self.app = new Application({
@@ -32,11 +32,12 @@ describe('Application launch', function () {
     await matches.waitForLoad();
 
     const settings = await matches.sidebar.navigateToSettings();
-    settings.startParsingReplays()
+
+    await settings.waitForFileCount(32);
+    await settings.startParsingReplays();
     await settings.waitForReplaysToFinishParsing();
+    await settings.sidebar.navigateToMatches();
 
-    expect(matches.totalReplays).to.equal(32);
+    expect(await matches.totalReplays()).to.equal(32);
   })
-
-  // TODO: https://circleci.com/blog/electron-testing/
 })
