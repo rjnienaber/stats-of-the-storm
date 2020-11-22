@@ -70,3 +70,4 @@ test.pdf
 parser/test.json
 .npmrc
 filter.js
+test/tmp

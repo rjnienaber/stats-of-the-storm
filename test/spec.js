@@ -9,7 +9,7 @@ const REPLAY_DIR = path.join(__dirname, 'replays');
 
 describe('Application launch', function () {
   self = this;
-  this.timeout(20000)
+  this.timeout(120000);
 
   beforeEach(function () {
     self.app = new Application({
@@ -21,7 +21,7 @@ describe('Application launch', function () {
 
   afterEach(function () {
     if (self.app && self.app.isRunning()) {
-      return self.app.stop()
+      return self.app.stop();
     }
   })
 
@@ -32,12 +32,15 @@ describe('Application launch', function () {
     await matches.waitForLoad();
 
     const settings = await matches.sidebar.navigateToSettings();
-
-    await settings.waitForFileCount(32);
+    const expectedMatches = 32;
+    await settings.waitForFileCount(expectedMatches);
     await settings.startParsingReplays();
     await settings.waitForReplaysToFinishParsing();
     await settings.sidebar.navigateToMatches();
 
-    expect(await matches.totalReplays()).to.equal(32);
+    expect(await matches.totalReplays()).to.equal(expectedMatches);
+
+    await matches.search();
+    await matches.waitForSelectedReplay(expectedMatches);
   })
 })

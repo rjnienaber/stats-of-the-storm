@@ -80,7 +80,7 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "app": "electron ./",
-    "app:dev": "electron ./ --appPath=test/tmp/ --replayPath=test/replays/",
+    "app:dev": "electron ./ --appPath=test/tmp/ --replayPath=test/replays/ --devTools",
     "publish": "electron-builder --x64 --publish always",
     "protocol": "node ./node_modules/heroprotocol/postinstall.js",
     "test:e2e": "run-s test:clean test:spectron",

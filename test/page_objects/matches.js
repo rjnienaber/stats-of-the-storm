@@ -14,10 +14,28 @@ class MatchesPage extends BasePage {
     this.browser.waitForVisible("#matches-page-header");
   }
 
+  async selectedReplays() {
+    debug('getting selected replays from search');
+    const count = await this.browser.getHTML('#matches-selected', false)
+    return parseInt(count, 10);
+  }
+
   async totalReplays() {
     debug('getting total replays in database');
     const count = await this.browser.getHTML('#matches-in-database-stat', false)
     return parseInt(count, 10);
+  }
+
+  search() {
+    debug('click search button');
+    this.browser.click('#match-search-button');
+  }
+
+  waitForSelectedReplay(expectedNumber) {
+    return this.browser.waitUntil(async () => {
+      const count = await this.selectedReplays();
+      return count === expectedNumber;
+    }, 5000, 'timed out waiting for expected selected replay count', 100);
   }
 }
 

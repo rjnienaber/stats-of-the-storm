@@ -53,6 +53,7 @@ function createWindow() {
 
   const appPathArg = process.argv.filter((arg) => arg.includes('--appPath'))[0]
   const replayPathArg = process.argv.filter((arg) => arg.includes('--replayPath'))[0]
+  const devtoolsEnabled = !!process.argv.filter((arg) => arg.includes('--devTools'))[0]
   if (appPathArg && replayPathArg) {
     const [appPath, replayPath] = [appPathArg, replayPathArg].map((p) => {
       const testPath = p.split('=')[1];
@@ -80,7 +81,9 @@ function createWindow() {
       allWindows[w].close();
     }
   });
-  win.webContents.toggleDevTools();
+  if (devtoolsEnabled) {
+    win.webContents.toggleDevTools();
+  }
 
   autoUpdater.checkForUpdatesAndNotify();
 }
