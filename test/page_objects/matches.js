@@ -20,6 +20,12 @@ class MatchesPage extends BasePage {
     return parseInt(count, 10);
   }
 
+  async rowCount() {
+    debug('getting row count in match table');
+    const rows = await this.browser.elements('table#match-list tr');
+    return rows.value.length;
+  }
+
   async totalReplays() {
     debug('getting total replays in database');
     const count = await this.browser.getHTML('#matches-in-database-stat', false)

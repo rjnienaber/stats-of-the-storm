@@ -42,5 +42,6 @@ describe('Application launch', function () {
 
     await matches.search();
     await matches.waitForSelectedReplay(expectedMatches);
+    expect(await matches.rowCount()).to.equal(20);
   })
 })
