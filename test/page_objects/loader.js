@@ -1,14 +1,14 @@
 const Debug = require('debug');
+const {BasePage} = require('./base');
 const {MatchesPage} = require('./matches');
 const {Sidebar} = require('./sidebar');
 const {sleep} = require('./utils');
 
-const debug = Debug('e2e:loaderPage');
+const debug = Debug('e2e:loader');
 
-class LoaderPage {   
+class LoaderPage extends BasePage {   
   constructor(app) {
-    this.app = app;
-    this.browser = app.client;
+    super(app, debug);
   }
 
   async waitForMatchesPage() {

@@ -34,7 +34,7 @@ class MatchesPage extends BasePage {
 
   search() {
     debug('click search button');
-    this.browser.click('#match-search-button');
+    this.click('#match-search-button');
   }
 
   waitForSelectedReplay(expectedNumber) {
